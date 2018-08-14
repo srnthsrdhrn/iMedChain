@@ -35,8 +35,8 @@ class MerkelTree:
     def get_all_transactions(self):
         return self.__leaf_transaction_hashes
 
-    def add_transaction(self, _hash):
-        self.__leaf_transaction_hashes.append(MerkelNode(_hash))
+    def add_transaction(self, transaction):
+        self.__leaf_transaction_hashes.append(MerkelNode(transaction.get_hash(), transaction))
 
     def build_tree(self):
         if self.__leaf_transaction_hashes.__len__() == 0:
@@ -51,13 +51,17 @@ class MerkelTree:
 
 
 class MerkelNode:
-    def __init__(self, data):
-        self.__data = data
+    def __init__(self, _hash, transaction=None):
+        self.__data = _hash
         self.__left_child = None
         self.__right_child = None
+        self.__transaction = transaction
 
     def get_data(self):
         return self.__data
+
+    def get_transaction(self):
+        return self.__transaction
 
     def get_left_child(self):
         return self.__left_child
