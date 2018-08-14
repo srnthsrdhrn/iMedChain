@@ -58,6 +58,7 @@ class Block:
         self.__merkel_tree = MerkelTree()
         self.__nonce = 0
         self.__hash = None
+        self.__transaction_list = []
 
     def get_nonce(self):
         return self.__nonce
@@ -76,7 +77,8 @@ class Block:
             transaction.set_previous_transaction_hash("0")
         else:
             transaction.set_previous_transaction_hash(self.get_latest_transaction().get_hash())
-        self.__merkel_tree.add_transaction(transaction.get_hash())
+        self.__merkel_tree.add_transaction(transaction)
+        self.__transaction_list.append(transaction)
         if self.__merkel_tree.get_transaction_length() > BLOCK_TRANSACTION_LIMIT:
             self.__merkel_tree.build_tree()
             print("Block Full Initiating Merkel Tree Building and Block Mining")
