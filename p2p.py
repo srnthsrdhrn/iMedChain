@@ -26,17 +26,18 @@ IP_SYNC_1 = 1
 IP_SYNC_2 = 2
 KEY_SYNC = 3
 DATA = 4
+CHAIN_SYNC = 5
 
 
 def format_return_data(*args, **kwargs):
     data = str(args[0])
     for arg in args[1:]:
         data += "|" + str(arg)
-    data += TERMINATOR
     key = kwargs.get("key")
     if key:
         cipher = AESCipher(key)
         data = cipher.encrypt(data)
+    data += TERMINATOR
     return data
 
 
@@ -82,7 +83,6 @@ def msg_received(msocket, address, payload):
     else:
         payload = payload.split("|")
         try:
-            code = int(payload[0])
             if int(payload[0]) == CLIENT_REGISTRATION:
                 peer_type = payload[1]
                 peer_data = {"address": address, "type": peer_type, "ping": None, "key": None, "socket": msocket}
@@ -114,11 +114,12 @@ def msg_received(msocket, address, payload):
                 print "Received Key Sync"
                 key = payload[1]
                 peer['key'] = key
-                msocket.send(format_return_data(DATA, "Hello World", key=key))
-        except Exception,e:
+        except Exception, e:
             payload = decipher(peer, payload[0]).split("|")
             if int(payload[0]) == DATA:
                 print payload[1]
+            elif int(payload[0]) == CHAIN_SYNC:
+                pass
 
 
 def handler(msocket, a, callback):
@@ -131,14 +132,14 @@ def handler(msocket, a, callback):
                 print "Disconnected from {}".format(a)
                 disconnect_peer(a)
                 break
-            if data:
+            if data.endswith(TERMINATOR):
                 payload = payload[:-TERMINATOR.__len__()]
                 callback(msocket, a, payload)
                 payload = ""
 
         except KeyboardInterrupt:
             sys.exit(0)
-        except Exception,e:
+        except Exception, e:
             print e.message
             pass
 
@@ -174,11 +175,10 @@ class Client:
         iThread.start()
 
 
-if (len(sys.argv)) > 1:
-    code = int(sys.argv[1])
+def start(code, address):
+    global TYPE
+    code = int(code)
     TYPE = code
     if code != TRACKER:
-        Client(sys.argv[2])
+        Client(address)
     Server()
-else:
-    print "Missing Arguments, Program Exiting ..."

@@ -24,7 +24,7 @@ class MerkelTree:
                 flag = False
             else:
                 flag = True
-                string = temp.data + transaction.data
+                string = temp.get_data() + transaction.get_data()
                 data = sha512(string).hexdigest()
                 node = MerkelNode(data)
                 node.__left_child = temp

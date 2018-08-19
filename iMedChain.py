@@ -1,3 +1,4 @@
+import pickle
 from datetime import datetime
 from hashlib import sha512
 
@@ -32,20 +33,31 @@ class IMedChain:
             target = PER_BLOCK_MINING_TIME * DIFFICULTY_CHECK_LIMIT
             difference = target - total_time
             self.__difficulty = self.__difficulty + (difference / self.__difficulty)
-        if block.calculate_block_hash() == block.get_hash() and block.get_hash().count(
-                "0") == self.__difficulty and all(
+        if block.calculate_block_hash() == block.get_hash() and block.get_hash()[:self.__difficulty] == \
+                "0" * self.__difficulty and all(
             [True if transaction not in self.unconfirmed_transaction_hashes else False for transaction in
              block.get_merkel_tree().get_all_transactions()]):
             self.__chain.append(block)
             print "Block added to chain"
+            return True
         else:
             print "Block Rejected"
+            return False
 
     def get_latest_block(self):
         return self.__chain[-1]
 
+    def get_block(self, index):
+        try:
+            return self.__chain[index]
+        except Exception, e:
+            print e.message
+
     def get_difficulty(self):
         return self.__difficulty
+
+    def get_chain_string(self):
+        return pickle.dumps(self.__chain)
 
 
 class Block:
@@ -76,7 +88,7 @@ class Block:
         if self.get_latest_transaction() is None:
             transaction.set_previous_transaction_hash("0")
         else:
-            transaction.set_previous_transaction_hash(self.get_latest_transaction().get_hash())
+            transaction.set_previous_transaction_hash(self.get_latest_transaction().get_transaction().get_hash())
         self.__merkel_tree.add_transaction(transaction)
         self.__transaction_list.append(transaction)
         if self.__merkel_tree.get_transaction_length() > BLOCK_TRANSACTION_LIMIT:
@@ -99,7 +111,9 @@ class Block:
 
     def get_mining_time(self):
         if self.__hash:
-            return (self.__pre_mining_timestamp - self.__pre_mining_timestamp).get_total_seconds()
+            pre = datetime.strptime(self.__pre_mining_timestamp, "%d/%m/%Y %H:%M:%S")
+            post = datetime.strptime(self.__post_mining_timestamp, "%d/%m/%Y %H:%M:%S")
+            return (post - pre).get_total_seconds()
 
     def get_latest_transaction(self):
         if self.__merkel_tree.get_transaction_length() > 0:
@@ -108,12 +122,17 @@ class Block:
             return None
 
     def calculate_block_hash(self):
-        string = self.__previous_hash + self.__timestamp + self.get_merkel_tree().get_merkel_root().get_data() + \
+        string = str(self.__previous_hash) + str(self.__timestamp) + str(
+            self.get_merkel_tree().get_merkel_root().get_data()) + \
                  str(self.__nonce)
         return sha512(string).hexdigest()
 
 
 class Transaction:
+    CREATE = 0
+    UPDATE = 1
+    DELETE = 2
+
     def __init__(self, data, user_public_key):
         self.__data = data
         self.__timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -123,6 +142,14 @@ class Transaction:
         self.__output_transactions = []
         self.__encrypted_data = None
         self.__hash = None
+        self.__type = None
+        self.__source_transaction = None
+
+    def set_type(self, _type):
+        self.__type = _type
+
+    def get_type(self):
+        return self.__type
 
     def set_previous_transaction_hash(self, _hash):
         self.__previous_transaction_hash = _hash
@@ -133,6 +160,8 @@ class Transaction:
 
     def calculate_hash(self):
         string = self.__data + self.__timestamp + self.__previous_transaction_hash
+        if self.__source_transaction:
+            string += self.__source_transaction.get_hash()
         self.__hash = sha512(string).hexdigest()
 
     def get_hash(self):
@@ -149,11 +178,33 @@ class Transaction:
 
 
 class Wallet:
+    __instances = []
+
     def __init__(self):
-        self.__public_key, self.__private_key = rsa.newkeys(2048)
+
+        self.__public_key, self.__private_key = rsa.newkeys(1024)
+        Wallet.__instances.append(self)
+        Wallet.store_wallet()
 
     def get_public_key(self):
         return self.__public_key
 
     def get_private_key(self):
         return self.__private_key
+
+    @staticmethod
+    def get_instances():
+        return Wallet.__instances
+
+    @staticmethod
+    def store_wallet():
+        pickle.dump(Wallet.__instances, open("data/wallets.pickle", "w"))
+
+    @staticmethod
+    def restore_wallet():
+        try:
+            Wallet.__instances = pickle.load(open("data/wallets.pickle"))
+            return True
+        except Exception, e:
+            print e.message
+            return False
