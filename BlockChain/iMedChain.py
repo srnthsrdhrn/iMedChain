@@ -4,7 +4,7 @@ from hashlib import sha512
 
 import rsa
 
-from MerkelTree import MerkelTree
+from BlockChain.MerkelTree import MerkelTree
 
 BLOCK_TRANSACTION_LIMIT = 10
 DIFFICULTY_CHECK_LIMIT = 5
@@ -59,6 +59,17 @@ class IMedChain:
     def get_chain_string(self):
         return pickle.dumps(self.__chain)
 
+    def store_chain(self):
+        pickle.dump(self, "data/chain.pickle")
+        print "Chain Stored at data/chain.pickle"
+
+    @staticmethod
+    def restore_chain():
+        try:
+            return pickle.load(open("data/chain.pickle"))
+        except Exception, e:
+            return False
+
 
 class Block:
     def __init__(self, previous_hash, difficulty):
@@ -88,7 +99,7 @@ class Block:
         if self.get_latest_transaction() is None:
             transaction.set_previous_transaction_hash("0")
         else:
-            transaction.set_previous_transaction_hash(self.get_latest_transaction().get_transaction().get_hash())
+            transaction.set_previous_transaction_hash(self.get_latest_transaction().get_hash())
         self.__merkel_tree.add_transaction(transaction)
         self.__transaction_list.append(transaction)
         if self.__merkel_tree.get_transaction_length() > BLOCK_TRANSACTION_LIMIT:
@@ -134,7 +145,6 @@ class Transaction:
     DELETE = 2
 
     def __init__(self, data, user_public_key):
-        self.__data = data
         self.__timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.__user_public_key = user_public_key
         self.__previous_transaction_hash = None
@@ -144,6 +154,7 @@ class Transaction:
         self.__hash = None
         self.__type = None
         self.__source_transaction = None
+        self.encrypt_data(data)
 
     def set_type(self, _type):
         self.__type = _type
@@ -154,12 +165,10 @@ class Transaction:
     def set_previous_transaction_hash(self, _hash):
         self.__previous_transaction_hash = _hash
 
-    def encrypt_data(self):
-        string = self.__data + self.__timestamp + self.__previous_transaction_hash
+    def encrypt_data(self, data):
+        string = data + "|" + self.__timestamp + "|" + "" if not self.__previous_transaction_hash else self.__previous_transaction_hash
         self.__encrypted_data = rsa.encrypt(string, pub_key=self.__user_public_key)
-
-    def calculate_hash(self):
-        string = self.__data + self.__timestamp + self.__previous_transaction_hash
+        string = data + self.__timestamp + "" if not self.__previous_transaction_hash else self.__previous_transaction_hash
         if self.__source_transaction:
             string += self.__source_transaction.get_hash()
         self.__hash = sha512(string).hexdigest()
@@ -167,7 +176,7 @@ class Transaction:
     def get_hash(self):
         if self.__hash is None:
             try:
-                self.calculate_hash()
+
                 self.encrypt_data()
             except Exception, e:
                 return False
@@ -175,6 +184,13 @@ class Transaction:
 
     def get_encrypted_data(self):
         return self.__encrypted_data
+
+    def get_decrypted_data(self, private_key):
+        try:
+            string = rsa.decrypt(self.__encrypted_data, private_key)
+            return string.split("|")[0]
+        except rsa.DecryptionError, e:
+            return "Decryption Error Key MisMatch"
 
 
 class Wallet:
@@ -186,15 +202,9 @@ class Wallet:
         Wallet.__instances.append(self)
         Wallet.store_wallet()
 
-    def get_public_key(self):
-        return self.__public_key
-
-    def get_private_key(self):
-        return self.__private_key
-
     @staticmethod
     def get_instances():
-        return Wallet.__instances
+        return list(Wallet.__instances)
 
     @staticmethod
     def store_wallet():
@@ -208,3 +218,22 @@ class Wallet:
         except Exception, e:
             print e.message
             return False
+
+    @staticmethod
+    def get_user_from_public_key(public_key):
+        for wallet in Wallet.get_instances():
+            if wallet.get_public_key() == public_key:
+                return wallet
+        return False
+
+    def get_public_key(self):
+        return self.__public_key
+
+    def get_private_key(self):
+        return self.__private_key
+
+    def store_keys_as_file(self):
+        pub = open("data/public_key.pem", "w")
+        pub.write(self.__public_key.save_pkcs1("PEM"))
+        private = open("data/private_key.pem", "w")
+        private.write(self.__private_key.save_pkcs1("PEM"))

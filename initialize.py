@@ -1,10 +1,7 @@
 import pickle
-import sys
 
-from iMedChain import Block, IMedChain, Wallet, Transaction
-from p2p import start
+from BlockChain.iMedChain import Block, IMedChain, Wallet
 
-chain = None
 block = None
 
 
@@ -17,21 +14,24 @@ def add_transaction(transaction):
     if block.get_hash():
         if chain.add_block(block):
             block = None
+
         else:
-            pass
+            print "Mining Block Failed"
 
 
 def start_chain():
     global chain
-    try:
-        chain = pickle.load(open("data/chain.pickle"))
-        print "Restored Chain "
-        Wallet.restore_wallet()
-        print "Restored Wallet"
-    except Exception, e:
-        print e.message
+    chain = IMedChain.restore_chain()
+    if chain:
+        print "Restored Chain"
+    else:
         chain = IMedChain()
-        print "Created chain"
+        print "Created Chain"
+    if Wallet.restore_wallet():
+        print "Restored Wallet"
+    else:
+        Wallet()
+        print "Created Wallet"
     return chain
 
 
@@ -56,14 +56,13 @@ def get_wallets_string():
     return pickle.dumps(instances)
 
 
-if sys.argv.__len__() > 0:
-    global chain
-    code = sys.argv[0]
-    address = sys.argv[1]
-    chain = start_chain()
-    instances = Wallet.get_instances()
-    if instances.__len__() > 0:
-        user1 = instances[-1]
-        trx = Transaction("Hello World", user1.get_public_key())
-        for _ in range(0, 11):
-            add_transaction(trx)
+chain = start_chain()
+instances = Wallet.get_instances()
+# if sys.argv.__len__() > 0:
+#     code = sys.argv[0]
+#     address = sys.argv[1]
+# if instances.__len__() > 0:
+#     user1 = instances[-1]
+#     trx = Transaction("Hello World", user1.get_public_key())
+#     for _ in range(0, 11):
+#         add_transaction(trx)

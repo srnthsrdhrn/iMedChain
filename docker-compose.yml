@@ -1,0 +1,10 @@
+version: "3.3"
+services:
+  machine:
+    build: .
+    image: imedchain
+    networks:
+      - srinath
+networks:
+  srinath:
+

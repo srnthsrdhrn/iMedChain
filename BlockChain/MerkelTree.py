@@ -33,7 +33,10 @@ class MerkelTree:
         self.__construct_merkel_tree(onward_transactions)
 
     def get_all_transactions(self):
-        return self.__leaf_transaction_hashes
+        transactions = []
+        for t in self.__leaf_transaction_hashes:
+            transactions.append(t.get_transaction())
+        return transactions
 
     def add_transaction(self, transaction):
         self.__leaf_transaction_hashes.append(MerkelNode(transaction.get_hash(), transaction))

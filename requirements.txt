@@ -12,10 +12,12 @@ Naked==0.1.31
 netifaces==0.10.7
 ntplib==0.3.3
 pyasn1==0.4.4
+pycrypto==2.6.1
 pycryptodome==3.6.4
 PyHamcrest==1.9.0
 pyotp==2.2.6
 pyroute2==0.5.2
+python-ping==0.0.0
 PyYAML==3.13
 requests==2.19.1
 rsa==3.4.2
