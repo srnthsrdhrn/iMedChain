@@ -1,6 +1,16 @@
+import os
+import random
 import string
 import threading
-from random import random
+
+"""
+------------------------------------------------------------------------------------------------------------------------
+                                            Project Settings
+------------------------------------------------------------------------------------------------------------------------
+"""
+PRODUCTION = os.environ.get("PRODUCTION", False)
+REDIS_HOSTNAME = os.environ.get("REDIS_HOSTNAME", "192.168.21.3")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 
 """
 ------------------------------------------------------------------------------------------------------------------------
@@ -29,7 +39,7 @@ TERMINATOR = "\n28375"
 CLIENT_REGISTRATION = 0
 IP_SYNC_1 = 1
 IP_SYNC_2 = 2
-KEY_SYNC = 3
+RETURN_SYNC = 3
 DATA = 4
 CHAIN_SYNC = 5
 
@@ -43,6 +53,7 @@ peer_data = {"address": None, "type": SELF, "ping": None, "key": None, "socket":
              "peer_id": PEER_ID}
 peers.append(peer_data)
 PEER_IDS = [PEER_ID]
+DATA_LINK_QUEUE_NAME = "DataLinkQueue"
 
 """
 ------------------------------------------------------------------------------------------------------------------------
@@ -51,14 +62,13 @@ PEER_IDS = [PEER_ID]
 """
 routing_mutex = threading.Lock()
 ROUTING_TABLE = {}
-DESTINATION = 'destination'
 PING = 'ping'
-FORWARD_TO = 'forward_to'
 FORWARD_TO_PEER_ID = 'forward_to_peer_id'
-SEQUENCE_NO='sequence'
+LSR_SEQUENCE_NO = 'lsr_sequence'
 # Header Flags
-NODE_JOIN_REQUEST = 1
 LSR_SYNC_PACKET = 0
-
-LSR_SYNC_PACKET_SEQUENCE = 0
-NODE_JOIN_REQUEST_SEQUENCE = 0
+NODE_JOIN_REQUEST = 1
+LSR_INIT = 2
+ROUTING_TABLE_QUEUE_NAME = 'routing_table_queue'
+ROUTING_TABLE_ENTRY = 0
+COMPUTE_ROUTING_TABLE = 1

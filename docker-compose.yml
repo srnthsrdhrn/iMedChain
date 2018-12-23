@@ -1,10 +1,87 @@
 version: "3.3"
 services:
-  machine:
+  redis:
+    restart: always
+    image: redis:latest
+    expose:
+    - 6379
+    ports:
+    - 6379:6379
+    networks:
+    - srinath
+
+  machine1:
     build: .
     image: imedchain
+    env_file:
+      - production.env
+    depends_on:
+      - redis
+    volumes:
+      - /home/srinath/Desktop/iMedChain:/usr/src/app
+    environment:
+      - MACHINE_CODE=1
+    ports:
+      - 10001:10000
+    links:
+      - redis
+      - machine2
+      - machine3
+      - machine4
+    hostname: machine1
     networks:
       - srinath
+  machine2:
+    image: imedchain
+    volumes:
+      - /home/srinath/Desktop/iMedChain:/usr/src/app
+    environment:
+    - MACHINE_CODE=2
+    ports:
+      - 10002:10000
+    env_file:
+    - production.env
+    depends_on:
+    - redis
+    links:
+    - redis
+    hostname: machine2
+    networks:
+    - srinath
+  machine3:
+    image: imedchain
+    volumes:
+      - /home/srinath/Desktop/iMedChain:/usr/src/app
+    environment:
+    - MACHINE_CODE=3
+    ports:
+      - 10003:10000
+    env_file:
+    - production.env
+    depends_on:
+    - redis
+    links:
+    - redis
+    hostname: machine3
+    networks:
+    - srinath
+  machine4:
+    image: imedchain
+    volumes:
+      - /home/srinath/Desktop/iMedChain:/usr/src/app
+    ports:
+      - 10004:10000
+    environment:
+    - MACHINE_CODE=4
+    env_file:
+    - production.env
+    depends_on:
+    - redis
+    links:
+    - redis
+    hostname: machine1
+    networks:
+    - srinath
 networks:
   srinath:
 
