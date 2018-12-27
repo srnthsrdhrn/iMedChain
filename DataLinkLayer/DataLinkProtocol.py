@@ -31,8 +31,31 @@ def decipher(peer, raw):
     return data
 
 
+def sync_peers(new_peers, address, peer_type, key):
+    flag = False
+    if not peer_mutex.locked():
+        peer_mutex.acquire()
+        flag = True
+    for peer1 in new_peers:
+        if peer1['type'] == -1:
+            if get_peer(address) is None:
+                peer1['address'] = address
+                peer1['socket'] = None
+                peer1['type'] = peer_type
+                peer1['key'] = key
+                peers.append(peer1)
+                PEER_IDS.append(peer1['peer_id'])
+                RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
+        if peer1['peer_id'] not in PEER_IDS:
+            Client(peer1["address"])
+            peers.append(peer1)
+            PEER_IDS.append(peer1['peer_id'])
+            RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
+    if flag:
+        peer_mutex.release()
+
+
 def msg_received(msocket, address, payload):
-    # print "\n\n" + str(address) + "\n\n" + str(payload) + "\n\n"
     if not payload:
         disconnect_peer(address)
     else:
@@ -44,56 +67,20 @@ def msg_received(msocket, address, payload):
                 peer_type = payload[1]
                 data = payload[2]
                 data = json.loads(data)
-                flag = False
-                if not peer_mutex.locked():
-                    peer_mutex.acquire()
-                    flag = True
-                for peer1 in data:
-                    if peer1['type'] == -1:
-                        if get_peer(address) is None:
-                            peer1['address'] = address
-                            peer1['socket'] = None
-                            peer1['type'] = peer_type
-                            peer1['key'] = key
-                            peers.append(peer1)
-                            PEER_IDS.append(peer1['peer_id'])
-                            RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
-                    if peer1['peer_id'] not in PEER_IDS:
-                        Client(peer1["address"])
-                        peers.append(peer1)
-                        PEER_IDS.append(peer1['peer_id'])
-                        RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
-                if flag:
-                    peer_mutex.release()
+                sync_peers(data, address, peer_type, key)
                 msocket.send(format_return_data(RETURN_SYNC, format_peers(), key))
             elif int(payload[0]) == RETURN_SYNC:
                 # Client
                 data = payload[1]
                 data = json.loads(data)
-                flag = False
-                if not peer_mutex.locked():
-                    peer_mutex.acquire()
-                    flag = True
-                for peer1 in data:
-                    if peer1['type'] == -1 and get_peer(address) is None:
-                        key = payload[2]
-                        peer = {'address': address, 'socket': None, 'key': key, 'type': TYPE,
-                                'peer_id': peer1['peer_id']}
-                        peers.append(peer)
-                        PEER_IDS.append(peer['peer_id'])
-                        RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
-                    if peer1['peer_id'] not in PEER_IDS:
-                        Client(peer1["address"])
-                        peers.append(peer1)
-                        PEER_IDS.append(peer1['peer_id'])
-                        RoutingTableQueue.put([COMPUTE_ROUTING_TABLE, 0])
-                if flag:
-                    peer_mutex.release()
+                key = payload[2]
+                sync_peers(data, address, TYPE, key)
                 # msocket.close()
                 # disconnect_peer(address)
                 return False
         except Exception, e:
             print e.message
+            print payload
             peer = get_peer(address)
             payload = decipher(peer, payload[0]).split("|")
             if int(payload[0]) == DATA:
