@@ -31,7 +31,7 @@ PyHamcrest==1.9.0
 pyotp==2.2.6
 pyroute2==0.5.2
 python-ping
-PyYAML==3.13
+PyYAML==5.4
 redis==2.10.6
 requests==2.19.1
 rsa==3.4.2
