@@ -34,7 +34,7 @@ python-ping
 PyYAML==3.13
 redis==2.10.6
 requests==2.19.1
-rsa==3.4.2
+rsa==4.7
 scandir==1.9.0
 shellescape==3.4.1
 simplegeneric==0.8.1
