@@ -40,7 +40,7 @@ shellescape==3.4.1
 simplegeneric==0.8.1
 six==1.11.0
 traitlets==4.3.2
-urllib3==1.23
+urllib3==1.26.5
 wcwidth==0.1.7
 win-unicode-console==0.5
 zope.interface==4.5.0
